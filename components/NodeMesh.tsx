@@ -1,8 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { useFrame } from '@react-three/fiber'
-import { Text, Billboard } from '@react-three/drei'
+import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { MapNode, NODE_TYPE_COLORS } from '@/lib/types'
 
@@ -20,8 +19,8 @@ export default function NodeMesh({ node, onClick }: NodeMeshProps) {
 
   useFrame(() => {
     if (mesh.current) {
-      const scale = hovered ? 1.2 : 1
-      mesh.current.scale.lerp(new THREE.Vector3(scale, scale, scale), 0.1)
+      const target = hovered ? 1.2 : 1
+      mesh.current.scale.lerp(new THREE.Vector3(target, target, target), 0.1)
     }
   })
 
@@ -30,42 +29,28 @@ export default function NodeMesh({ node, onClick }: NodeMeshProps) {
       <mesh
         ref={mesh}
         onClick={(e) => { e.stopPropagation(); onClick(node) }}
-        onPointerOver={() => setHovered(true)}
+        onPointerOver={(e) => { e.stopPropagation(); setHovered(true) }}
         onPointerOut={() => setHovered(false)}
       >
         <sphereGeometry args={[radius, 32, 32]} />
         <meshStandardMaterial
           color={color}
           emissive={color}
-          emissiveIntensity={hovered ? 1.5 : 0.8}
+          emissiveIntensity={hovered ? 2 : 1}
           roughness={0.2}
           metalness={0.1}
         />
       </mesh>
 
-      {/* glow sprite */}
-      <sprite scale={[radius * 4, radius * 4, 1]}>
+      {/* glow halo */}
+      <sprite scale={[radius * 5, radius * 5, 1]}>
         <spriteMaterial
           color={color}
           transparent
-          opacity={0.15}
+          opacity={0.12}
           depthWrite={false}
         />
       </sprite>
-
-      <Billboard follow lockX={false} lockY={false} lockZ={false}>
-        <Text
-          position={[0, radius + 0.5, 0]}
-          fontSize={0.4}
-          color="#ffffff"
-          anchorX="center"
-          anchorY="bottom"
-          outlineWidth={0.04}
-          outlineColor="#000000"
-        >
-          {node.label}
-        </Text>
-      </Billboard>
     </group>
   )
 }
