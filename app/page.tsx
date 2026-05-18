@@ -68,7 +68,7 @@ const TEST_EDGES: MapEdge[] = [
 
 export default function Home() {
   return (
-    <main className="w-screen h-screen bg-[#050510]">
+    <main style={{ width: '100vw', height: '100vh', background: '#050510', overflow: 'hidden' }}>
       <GraphViewer nodes={TEST_NODES} edges={TEST_EDGES} />
     </main>
   )

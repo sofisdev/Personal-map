@@ -2,7 +2,6 @@
 
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
-import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { forceSimulation, forceLink, forceManyBody, forceCenter } from 'd3-force-3d'
 import { MapNode, MapEdge } from '@/lib/types'
@@ -85,11 +84,11 @@ export default function GraphViewer({ nodes, edges, onPositionsStable, editMode 
   }, [editMode])
 
   return (
-    <div className="relative w-full h-full">
+    <div className="relative w-full h-full" style={{ minHeight: '100vh' }}>
       <Canvas
         camera={{ position: [0, 0, 80], fov: 60 }}
         gl={{ preserveDrawingBuffer: true, antialias: true }}
-        style={{ background: '#050510' }}
+        style={{ background: '#050510', width: '100%', height: '100%', position: 'absolute', inset: 0 }}
       >
         <Suspense fallback={null}>
           <ambientLight intensity={0.4} />
@@ -111,15 +110,6 @@ export default function GraphViewer({ nodes, edges, onPositionsStable, editMode 
             dampingFactor={0.05}
             touches={{ ONE: 2, TWO: 1 }}
           />
-
-          <EffectComposer>
-            <Bloom
-              luminanceThreshold={0.2}
-              luminanceSmoothing={0.9}
-              intensity={1.5}
-              radius={0.8}
-            />
-          </EffectComposer>
         </Suspense>
       </Canvas>
 
