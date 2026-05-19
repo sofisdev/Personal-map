@@ -1,78 +1,82 @@
 # personal-map
 
-A self-hosted interactive 3D identity map that you deploy to your own Vercel instance. Visitors see a dark, glowing force-directed graph of nodes (skills, projects, values, core identity) rendered in WebGL. The owner logs in at `/edit` to add and connect nodes through a live split-panel editor. All data lives in your own Supabase project — no central server, no multi-tenancy.
+A self-hosted interactive 3D identity map. Open the app, connect your own Supabase project, and build a glowing force-directed graph of the nodes that define you — skills, projects, values, relationships. No sign-up. No central server. Your Supabase credentials live only in your browser tab and vanish when you close it.
 
-## Deploy to Vercel
+## How it works
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/YOUR_USERNAME/personal-map&env=NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY,SUPABASE_SERVICE_ROLE_KEY,ADMIN_PASSWORD)
+1. Open the app → **Connect your Supabase** screen
+2. Paste your Supabase Project URL + anon key → read-only viewer
+3. Also paste the service role key → full editor at `/edit`
+4. Close the tab → credentials gone, nothing stored anywhere
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/YOUR_USERNAME/personal-map)
+
+> No environment variables needed. Just deploy and open.
 
 ## Supabase setup
 
-1. Create a new project at [supabase.com](https://supabase.com).
+1. Create a new project at [supabase.com](https://supabase.com)
 2. In the SQL editor, run the three migration files in order:
    - `supabase/migrations/001_create_map_config.sql`
    - `supabase/migrations/002_create_nodes.sql`
    - `supabase/migrations/003_create_edges.sql`
-3. Copy your **Project URL** and **anon key** from Settings → API.
-4. Copy the **service_role key** (keep this secret — server only).
+3. Go to **Settings → API** and copy:
+   - **Project URL** → paste as "Project URL" in the app
+   - **anon / public** key → paste as "Anon Key"
+   - **service_role / secret** key → paste as "Service Role Key" (edit mode only)
 
-## Environment variables
+## Security model
 
-| Variable | Description |
-|----------|-------------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public anon key (SELECT only via RLS) |
-| `SUPABASE_SERVICE_ROLE_KEY` | Secret service key — never in client bundle |
-| `ADMIN_PASSWORD` | bcrypt hash of your chosen password |
+| What | Where it lives | When it's cleared |
+|------|---------------|-------------------|
+| Supabase URL | `sessionStorage` | Tab close |
+| Anon key | `sessionStorage` | Tab close |
+| Service role key | `sessionStorage` | Tab close |
 
-Generate the bcrypt hash:
-```bash
-node -e "const b=require('bcryptjs'); b.hash('yourpassword',12).then(console.log)"
-```
+Keys are sent **only** to your own Supabase project over HTTPS. They are never sent to any other server. Closing the browser tab is a complete logout.
+
+The service role key bypasses Supabase RLS — it's the same key you see in your Supabase dashboard. Treat it like a password.
 
 ## Architecture
 
 ```
-Browser                    Vercel Edge / Node
-─────────                  ──────────────────
-/ (viewer)  ──anon key──▶  Supabase (SELECT only, RLS)
-/edit       ──cookie──▶    middleware (bcrypt verify)
-            ──service──▶   /api/* routes ──▶ Supabase (all ops)
-```
+Browser tab
+├── sessionStorage: { url, anonKey, serviceKey? }
+│     ↓ cleared on tab close
+├── anonClient  →  Supabase (SELECT, open to anon via RLS)
+└── serviceClient → Supabase (all ops, bypasses RLS)
 
-```
 app/
-├── page.tsx              Public 3D viewer
-├── edit/page.tsx         Owner editor (cookie-protected)
-├── api/
-│   ├── nodes/            CRUD nodes
-│   ├── edges/            CRUD edges
-│   ├── config/           Map config
-│   ├── templates/[name]/ Bulk template insert
-│   └── og/               Open Graph image
-├── middleware.ts         Admin auth
+├── page.tsx          Public viewer (ConnectScreen → GraphViewer)
+├── edit/page.tsx     Owner editor (requires serviceKey)
 lib/
-├── supabase-browser.ts   Anon client (viewer)
-├── supabase-server.ts    Service client (API routes only)
+├── session.ts        sessionStorage read/write
+├── session-context   React context + useSession hook
+├── supabase-session  Dynamic client creation
+├── write-ops.ts      All Supabase mutations
+├── templates.ts      Developer / Creative / Blank starter data
 └── types.ts
 components/
-├── GraphViewer.tsx       Three.js canvas + force simulation
-├── NodeMesh.tsx          Glowing node spheres
-├── EdgeLines.tsx         Connection lines
-├── StarField.tsx         Particle background
-└── NodeDrawer.tsx        Framer Motion info drawer
-supabase/migrations/      SQL schema files
+├── ConnectScreen     Credential entry UI
+├── GraphViewer       Three.js canvas + d3-force-3d + OrbitControls
+├── NodeMesh          Glowing spheres
+├── EdgeLines         Connection lines
+├── StarField         Particle background
+└── NodeDrawer        Click-to-open info drawer
+supabase/migrations/  SQL schema (run once in your Supabase project)
+```
+
+## Local development
+
+```bash
+git clone https://github.com/YOUR_USERNAME/personal-map
+cd personal-map
+npm install
+npm run dev
+# open http://localhost:3000
+# enter your Supabase credentials in the UI
 ```
 
 ## AI workflow
 
 _Fill in after build: describe how Claude was used to scaffold, iterate, and extend this project._
-
-## Local development
-
-```bash
-cp .env.example .env.local
-# fill in your Supabase credentials and admin password hash
-npm install
-npm run dev
-```

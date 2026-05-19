@@ -1,6 +1,6 @@
 'use client'
 
-import { Canvas, useThree, useFrame } from '@react-three/fiber'
+import { Canvas } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { forceSimulation, forceLink, forceManyBody, forceCenter } from 'd3-force-3d'
@@ -20,38 +20,6 @@ interface SimNode extends MapNode {
   vz?: number
 }
 
-// Projects 3D positions to screen coordinates for HTML labels
-function Labels({ nodes }: { nodes: SimNode[] }) {
-  const { camera, size } = useThree()
-  const [screenPositions, setScreenPositions] = useState<{ id: string; x: number; y: number; label: string }[]>([])
-
-  useFrame(() => {
-    const positions = nodes.map((node) => {
-      const vec = new THREE.Vector3(node.x, node.y, node.z)
-      vec.project(camera)
-      return {
-        id: node.id,
-        label: node.label,
-        x: (vec.x * 0.5 + 0.5) * size.width,
-        y: (-vec.y * 0.5 + 0.5) * size.height - 24,
-      }
-    })
-    setScreenPositions(positions)
-  })
-
-  return (
-    <group>
-      {screenPositions.map((p) => (
-        // Labels are rendered as HTML overlays outside this component
-        // We attach them to a data store via a side-effect-free mechanism
-        <mesh key={p.id} position={[0, 0, -9999]} visible={false}>
-          <boxGeometry args={[0, 0, 0]} />
-          <meshBasicMaterial />
-        </mesh>
-      ))}
-    </group>
-  )
-}
 
 interface GraphViewerProps {
   nodes: MapNode[]

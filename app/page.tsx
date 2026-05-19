@@ -1,75 +1,89 @@
+'use client'
+
 import dynamic from 'next/dynamic'
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import { useSession } from '@/lib/session-context'
+import { hasWriteAccess } from '@/lib/session'
+import { bulkUpdatePositions } from '@/lib/write-ops'
+import ConnectScreen from '@/components/ConnectScreen'
 import { MapNode, MapEdge } from '@/lib/types'
 
-// Dynamically import to avoid SSR issues with Three.js
 const GraphViewer = dynamic(() => import('@/components/GraphViewer'), { ssr: false })
 
-// Hardcoded test data — will be replaced with Supabase fetch in Step 4
-const TEST_NODES: MapNode[] = [
-  {
-    id: 'node-1',
-    label: 'Me',
-    type: 'core',
-    description: 'The center of this map.',
-    url: null,
-    color: null,
-    size: 2,
-    position_x: null,
-    position_y: null,
-    position_z: null,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'node-2',
-    label: 'TypeScript',
-    type: 'skill',
-    description: 'Typed superset of JavaScript.',
-    url: 'https://www.typescriptlang.org',
-    color: null,
-    size: 1.2,
-    position_x: null,
-    position_y: null,
-    position_z: null,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'node-3',
-    label: 'Open Source',
-    type: 'value',
-    description: 'Building in the open.',
-    url: null,
-    color: null,
-    size: 1,
-    position_x: null,
-    position_y: null,
-    position_z: null,
-    created_at: new Date().toISOString(),
-  },
-]
-
-const TEST_EDGES: MapEdge[] = [
-  {
-    id: 'edge-1',
-    source_id: 'node-1',
-    target_id: 'node-2',
-    strength: 0.8,
-    label: null,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'edge-2',
-    source_id: 'node-1',
-    target_id: 'node-3',
-    strength: 0.6,
-    label: null,
-    created_at: new Date().toISOString(),
-  },
-]
-
 export default function Home() {
+  const { session, anonClient, serviceClient } = useSession()
+  const [nodes, setNodes] = useState<MapNode[]>([])
+  const [edges, setEdges] = useState<MapEdge[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!anonClient) return
+    setLoading(true)
+    setError(null)
+
+    async function fetchData() {
+      try {
+        const [nodesRes, edgesRes] = await Promise.all([
+          anonClient!.from('nodes').select('*').order('created_at'),
+          anonClient!.from('edges').select('*'),
+        ])
+        if (nodesRes.error) throw nodesRes.error
+        if (edgesRes.error) throw edgesRes.error
+        setNodes(nodesRes.data as MapNode[])
+        setEdges(edgesRes.data as MapEdge[])
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Failed to load data')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [anonClient])
+
+  async function handlePositionsStable(positions: { id: string; x: number; y: number; z: number }[]) {
+    if (!serviceClient) return
+    try {
+      await bulkUpdatePositions(serviceClient, positions)
+    } catch {
+      // silently ignore position save failures
+    }
+  }
+
+  if (!session) {
+    return <ConnectScreen onConnected={() => {}} />
+  }
+
   return (
     <main style={{ width: '100vw', height: '100vh', background: '#050510', overflow: 'hidden' }}>
-      <GraphViewer nodes={TEST_NODES} edges={TEST_EDGES} />
+      {loading && (
+        <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+          <div className="text-white/30 text-sm animate-pulse">Loading…</div>
+        </div>
+      )}
+
+      {error && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 bg-red-500/20 border border-red-500/30 text-red-300 text-sm px-4 py-2 rounded-lg">
+          {error}
+        </div>
+      )}
+
+      <GraphViewer
+        nodes={nodes}
+        edges={edges}
+        onPositionsStable={handlePositionsStable}
+      />
+
+      {hasWriteAccess(session) && (
+        <Link
+          href="/edit"
+          className="fixed bottom-6 left-6 z-30 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white text-sm px-4 py-2 rounded-lg transition-colors"
+        >
+          Edit ✏
+        </Link>
+      )}
     </main>
   )
 }

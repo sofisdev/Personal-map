@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import ClientProviders from '@/components/ClientProviders'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -9,10 +10,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <head>
-        <meta property="og:image" content="/api/og" />
-      </head>
-      <body className="bg-[#050510] text-white">{children}</body>
+      <body className="bg-[#050510] text-white">
+        <ClientProviders>{children}</ClientProviders>
+      </body>
     </html>
   )
 }
