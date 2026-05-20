@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useSession } from '@/lib/session-context'
-import { createAnonClient } from '@/lib/supabase-session'
 import { SupabaseSession } from '@/lib/session'
 
 interface ConnectScreenProps {
@@ -43,11 +42,18 @@ export default function ConnectScreen({ onConnected, requireServiceKey }: Connec
 
     setLoading(true)
     try {
-      // Validate credentials with a test query
-      const testClient = createAnonClient({ url: trimmedUrl, anonKey: trimmedAnon })
-      const { error: testError } = await testClient.from('nodes').select('id').limit(1)
-      if (testError && testError.code !== 'PGRST116') {
-        throw new Error(`Could not connect: ${testError.message}`)
+      // Validate credentials by hitting the REST health endpoint.
+      // We avoid querying a specific table here so that missing migrations
+      // don't block the user from connecting.
+      const res = await fetch(`${trimmedUrl}/rest/v1/`, {
+        headers: { apikey: trimmedAnon, Authorization: `Bearer ${trimmedAnon}` },
+      })
+      if (res.status === 401 || res.status === 403) {
+        throw new Error('Invalid URL or anon key — check your Supabase API settings.')
+      }
+      if (!res.ok && res.status !== 400) {
+        // 400 is normal for an empty REST root; anything else unexpected
+        throw new Error(`Could not reach Supabase (${res.status}). Check the Project URL.`)
       }
 
       const session: SupabaseSession = {
