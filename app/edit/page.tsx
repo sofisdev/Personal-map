@@ -176,16 +176,7 @@ export default function EditPage() {
   }
 
   if (!session) return <ConnectScreen onConnected={() => {}} />
-  if (!serviceClient) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#050510] px-4">
-        <div className="text-center max-w-sm">
-          <p className="text-white/60 mb-4">Edit mode requires the service role key.</p>
-          <Link href="/" className="text-sm text-white/40 hover:text-white underline">Back to viewer</Link>
-        </div>
-      </div>
-    )
-  }
+  if (!serviceClient) return <ServiceKeyPrompt />
 
   return (
     <div className="flex h-screen bg-[#050510] text-white overflow-hidden">
@@ -415,6 +406,55 @@ export default function EditPage() {
           onPositionsStable={handlePositionsStable}
           editMode
         />
+      </div>
+    </div>
+  )
+}
+
+// ── ServiceKeyPrompt ──────────────────────────────────────────────
+
+function ServiceKeyPrompt() {
+  const { session, connect } = useSession()
+  const [key, setKey] = useState('')
+  const [error, setError] = useState<string | null>(null)
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    const trimmed = key.trim()
+    if (!trimmed) { setError('Service role key is required'); return }
+    connect({ ...session!, serviceKey: trimmed })
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[#050510] px-4">
+      <div className="w-full max-w-sm bg-[#0d0d20]/90 backdrop-blur-md border border-white/10 rounded-2xl p-8 shadow-2xl">
+        <h2 className="text-lg font-semibold mb-1">Enter service role key</h2>
+        <p className="text-white/40 text-sm mb-6">
+          Required for write access. Found in your Supabase project under{' '}
+          <span className="text-white/60">Settings → API → service_role secret</span>.
+        </p>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          <input
+            type="password"
+            placeholder="eyJ…"
+            value={key}
+            onChange={(e) => { setKey(e.target.value); setError(null) }}
+            className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm font-mono outline-none focus:border-white/30 placeholder:text-white/20"
+          />
+          <p className="text-xs text-amber-400/70">
+            Stored in sessionStorage only — cleared when this tab closes.
+          </p>
+          {error && <p className="text-red-400 text-sm">{error}</p>}
+          <button
+            type="submit"
+            className="py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-sm font-medium transition-colors"
+          >
+            Unlock editor
+          </button>
+        </form>
+        <Link href="/" className="block mt-4 text-xs text-white/30 hover:text-white/60 transition-colors text-center">
+          ← Back to viewer
+        </Link>
       </div>
     </div>
   )
