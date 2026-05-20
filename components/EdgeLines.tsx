@@ -37,7 +37,7 @@ export default function EdgeLines({ edges, nodes }: EdgeLinesProps) {
       const mat = new THREE.LineBasicMaterial({
         color: '#6366f1',
         transparent: true,
-        opacity: 0.3 + (edge.strength ?? 0.5) * 0.3,
+        opacity: 0.5 + (edge.strength ?? 0.5) * 0.3,
         depthWrite: false,
       })
       const lineObj = new THREE.Line(geo, mat)

@@ -37,7 +37,6 @@ export default function GraphViewer({ nodes, edges, onPositionsStable, editMode 
   const simRef = useRef<any>(null)
   const stableRef = useRef(false)
   const cameraRef = useRef<THREE.Camera | null>(null)
-  const sizeRef = useRef({ width: 0, height: 0 })
 
   const hasSavedPositions = nodes.length > 0 && nodes[0].position_x != null
 
@@ -61,8 +60,8 @@ export default function GraphViewer({ nodes, edges, onPositionsStable, editMode 
       .numDimensions(3)
       .force('link', forceLink(
         edges.map((e) => ({ source: e.source_id, target: e.target_id, strength: e.strength }))
-      ).id((d: SimNode) => d.id).distance(30).strength(0.4))
-      .force('charge', forceManyBody().strength(-80))
+      ).id((d: SimNode) => d.id).distance(18).strength(0.4))
+      .force('charge', forceManyBody().strength(-120))
       .force('center', forceCenter())
       .alpha(1)
       .alphaDecay(0.02)
@@ -85,12 +84,22 @@ export default function GraphViewer({ nodes, edges, onPositionsStable, editMode 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nodes.map((n) => n.id).join(',')])
 
+  // Sync non-position props (label, color, size, etc.) into simNodes without restarting simulation
+  useEffect(() => {
+    setSimNodes(prev =>
+      prev.map(sn => {
+        const fresh = nodes.find(n => n.id === sn.id)
+        return fresh ? { ...sn, ...fresh } : sn
+      })
+    )
+  }, [nodes])
+
   // Update label screen positions on animation frame
   useEffect(() => {
     let rafId: number
     const update = () => {
       if (cameraRef.current && containerRef.current) {
-        const { width, height } = sizeRef.current
+        const { width, height } = containerRef.current.getBoundingClientRect()
         const positions = simNodes.map((node) => {
           const vec = new THREE.Vector3(node.x, node.y, node.z)
           vec.project(cameraRef.current!)
@@ -116,12 +125,11 @@ export default function GraphViewer({ nodes, edges, onPositionsStable, editMode 
   return (
     <div ref={containerRef} className="relative w-full h-full" style={{ minHeight: '100vh' }}>
       <Canvas
-        camera={{ position: [0, 0, 80], fov: 60 }}
+        camera={{ position: [0, 0, 60], fov: 75 }}
         gl={{ preserveDrawingBuffer: true, antialias: true }}
         style={{ background: '#050510', width: '100%', height: '100%', position: 'absolute', inset: 0 }}
-        onCreated={({ camera, size }) => {
+        onCreated={({ camera }) => {
           cameraRef.current = camera
-          sizeRef.current = size
         }}
       >
         <Suspense fallback={null}>

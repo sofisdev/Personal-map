@@ -15,7 +15,7 @@ export default function NodeMesh({ node, onClick }: NodeMeshProps) {
   const [hovered, setHovered] = useState(false)
 
   const color = node.color ?? NODE_TYPE_COLORS[(node.type as keyof typeof NODE_TYPE_COLORS) ?? 'custom'] ?? '#a78bfa'
-  const radius = 0.6 * (node.size ?? 1)
+  const radius = 2 * (node.size ?? 1)
 
   useFrame(() => {
     if (mesh.current) {
