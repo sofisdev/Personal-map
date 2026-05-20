@@ -4,7 +4,6 @@ import dynamic from 'next/dynamic'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useSession } from '@/lib/session-context'
-import { hasWriteAccess } from '@/lib/session'
 import { bulkUpdatePositions } from '@/lib/write-ops'
 import ConnectScreen from '@/components/ConnectScreen'
 import { MapNode, MapEdge } from '@/lib/types'
@@ -76,14 +75,12 @@ export default function Home() {
         onPositionsStable={handlePositionsStable}
       />
 
-      {hasWriteAccess(session) && (
-        <Link
-          href="/edit"
-          className="fixed bottom-6 left-6 z-30 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white text-sm px-4 py-2 rounded-lg transition-colors"
-        >
-          Edit ✏
-        </Link>
-      )}
+      <Link
+        href="/edit"
+        className="fixed bottom-6 left-6 z-30 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white text-sm px-4 py-2 rounded-lg transition-colors"
+      >
+        Edit ✏
+      </Link>
     </main>
   )
 }
